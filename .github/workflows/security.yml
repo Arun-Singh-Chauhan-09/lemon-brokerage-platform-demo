@@ -1,0 +1,57 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  iac-scan:
+    name: IaC scan (tfsec + Checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra
+
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          config_file: policies/checkov/.checkov.yaml
+          # Scans both Terraform and Kubernetes manifests.
+
+  image-scan:
+    name: Image vulnerability scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t brokerage-api:scan ./app
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: brokerage-api:scan
+          severity: CRITICAL,HIGH
+          exit-code: "1"          # fail the build on HIGH/CRITICAL CVEs
+          ignore-unfixed: true
+
+  manifest-validate:
+    name: Validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar xz
+          ./kubeconform -strict -ignore-missing-schemas \
+            -skip Application \
+            gitops/apps/brokerage-api gitops/platform/otel-collector

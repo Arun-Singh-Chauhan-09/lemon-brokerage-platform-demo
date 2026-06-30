@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: brokerage-api
+  namespace: brokerage
+  labels:
+    app: brokerage-api
+spec:
+  selector:
+    app: brokerage-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

@@ -1,0 +1,10 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lemon-demo
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080   # NodePort for reaching the API from the host
+        hostPort: 8080
+        protocol: TCP
+  - role: worker

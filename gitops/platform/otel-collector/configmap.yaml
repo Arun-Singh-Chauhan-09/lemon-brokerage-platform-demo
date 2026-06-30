@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch: {}
+
+    exporters:
+      # --- DataDog: matches lemon.markets' stack. Needs DD_API_KEY + site. ---
+      datadog:
+        api:
+          site: ${env:DD_SITE}        # e.g. datadoghq.eu for an EU account
+          key: ${env:DD_API_KEY}
+      # --- Fallback for after the DataDog trial expires: just logs spans. ---
+      # Swap this for an OTLP exporter to Grafana Tempo with zero app changes.
+      debug:
+        verbosity: detailed
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          # To run without DataDog, change [datadog] -> [debug].
+          exporters: [datadog]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [datadog]

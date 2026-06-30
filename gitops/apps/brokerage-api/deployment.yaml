@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brokerage-api
+  namespace: brokerage
+  labels:
+    app: brokerage-api
+spec:
+  replicas: 2                       # multi-replica: no single point of failure
+  selector:
+    matchLabels:
+      app: brokerage-api
+  template:
+    metadata:
+      labels:
+        app: brokerage-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: brokerage-api
+          # Local: image is built and loaded into kind (see Makefile).
+          # EKS:  replace with your ECR image URI.
+          image: brokerage-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: brokerage-api
+            - name: DEPLOY_ENV
+              value: local
+            # Points at the in-cluster OTel Collector (OTLP gRPC).
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability.svc.cluster.local:4317"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

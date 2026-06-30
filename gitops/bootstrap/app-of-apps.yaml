@@ -1,0 +1,27 @@
+# Root Application: ArgoCD watches this, and this points at every other
+# Application manifest in the repo. Add a child app = commit a file here.
+# This is the App-of-Apps pattern.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Arun-Singh-Chauhan-09/lemon-brokerage-platform-demo.git
+    targetRevision: main
+    path: gitops/apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

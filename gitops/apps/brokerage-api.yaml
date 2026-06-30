@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: brokerage-api
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Arun-Singh-Chauhan-09/lemon-brokerage-platform-demo.git
+    targetRevision: main
+    path: gitops/apps/brokerage-api
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: brokerage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

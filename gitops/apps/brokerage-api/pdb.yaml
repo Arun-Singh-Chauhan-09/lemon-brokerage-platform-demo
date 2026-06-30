@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: brokerage-api
+  namespace: brokerage
+spec:
+  minAvailable: 1          # keep the API serving during node drains/upgrades
+  selector:
+    matchLabels:
+      app: brokerage-api
