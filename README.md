@@ -12,6 +12,9 @@ financial platform.
 ![ci](https://github.com/Arun-Singh-Chauhan-09/lemon-brokerage-platform-demo/actions/workflows/ci.yml/badge.svg)
 ![security](https://github.com/Arun-Singh-Chauhan-09/lemon-brokerage-platform-demo/actions/workflows/security.yml/badge.svg)
 
+> **Status:** MVP complete. Runs end-to-end locally on a kind cluster; the
+> production EKS path is documented. Both CI and security pipelines pass.
+
 ---
 
 ## Why this exists
@@ -27,7 +30,7 @@ choice maps to a concrete requirement:
 | IaC (Terraform / OpenTofu) | Modular `infra/` with VPC, EKS, RDS, IRSA |
 | Observability (OpenTelemetry, DataDog) | App emits OTLP → Collector → DataDog, exporter swappable |
 | IAM best practices | IRSA module: scoped, per-ServiceAccount roles |
-| Security & compliance | tfsec + Checkov + Trivy CI gates, OPA policies, encrypted RDS |
+| Security & compliance | tfsec + Checkov + Trivy CI gates, OPA policies, RDS encrypted with a customer-managed KMS key |
 | 24/7 availability | Multi-replica, HPA, PodDisruptionBudget, health/readiness probes |
 
 ## Architecture
@@ -54,6 +57,22 @@ The mock API exposes endpoints shaped after a real brokerage's core domains:
 management), and `/health` + `/ready` (availability probes). Order creation
 produces nested OpenTelemetry spans (`create_order` → `risk_check` →
 `execute_order`) so you get a real distributed trace to look at in DataDog.
+
+## Screenshots
+
+The platform running end-to-end on a local kind cluster:
+
+**ArgoCD reconciling all applications from Git (GitOps loop closed):**
+
+![ArgoCD dashboard](docs/images/argocd-dashboard.png)
+
+**Auto-generated OpenAPI docs for the brokerage API:**
+
+![Swagger UI](docs/images/swagger-ui.png)
+
+**Pods running in the cluster, served via NodePort:**
+
+![Running pods](docs/images/running-pods.png)
 
 ## Quickstart
 
@@ -96,6 +115,11 @@ make datadog-secret
 
 make demo                     # cluster -> ArgoCD -> build -> deploy via GitOps
 ```
+
+`make demo` runs every step in order: create the kind cluster, install ArgoCD
+(server-side apply), build the image, load it into the cluster, create the
+namespace, and hand off to ArgoCD. Deploying by hand instead requires building
+and loading the image before the pods can start.
 
 Open the ArgoCD UI:
 
